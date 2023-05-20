@@ -78,6 +78,8 @@ Strategy: Difference | Preprocess: HP filter / Strategy: Gradient /  Metric: SSI
     [x] SSIM
     [x] MS-SSIM
     [x] LPIPS
+    [ ] DICE score
+    [ ] JACCARD score
 
 [Strategy]
     [x] Difference
@@ -130,3 +132,16 @@ img2_directory = Path('./samples/imgdir2/')
 worker = Finder(strategy='gradient', metric='psnr')
 outputs = worker.run(img1_directory, img2_directory)
 ```
+
+<br />
+
+## Principle
+
+So... how does it work?
+
+![strategy1](figures/strategy1.png)
+When you set the strategy as 'difference', it simply return the l1 difference (i.e. absolute value of pixel-wise difference), regardless to given metric option.
+Actually, this is the straightforward and intuitive way to get the difference map.
+
+![strategy2](figures/strategy2.png)
+When you set the strategy as 'gradient', it will calculate the gradient of one of input image with respect to calculated (scalar) metric. One pixel of returned gradient indicates "how much the pixel contributes to the metric". Hence, the metric function **must be differentiable** by the pytorch auto-grad backend. It is required to construct all metric functions using the pytorch.
