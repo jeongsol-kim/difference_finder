@@ -98,6 +98,11 @@ Strategy: Difference | Preprocess: HP filter / Strategy: Gradient /  Metric: SSI
 - pytorch_msssim
 - lpips
 
+### Install
+```
+pip install difference-finder
+```
+
 ### Usage
 
 It would be simple. Just follow the three steps!
