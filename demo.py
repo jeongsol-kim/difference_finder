@@ -7,7 +7,7 @@ def main():
     second_dir = Path('samples/imgdir2')
 
     # define finder
-    worker = Finder(pre_processor='identity', strategy='gradient', metric='lpips')
+    worker = Finder(pre_processor='identity', strategy='gradient', metric='psnr')
     output = worker.run(first_dir, second_dir)
     
     for i, out in enumerate(output):
