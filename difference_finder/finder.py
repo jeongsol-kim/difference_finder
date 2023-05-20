@@ -54,9 +54,17 @@ class Finder(object):
     def run(self,
             img1: Union[Path, torch.Tensor],
             img2: Union[Path, torch.Tensor]):
-        
-        if img1.is_dir and img2.is_dir:
-            output = self.run_on_directory(img1, img2)
+
+        if isinstance(img1, Path) and isinstance(img2, Path):
+            if img1.is_dir() and img2.is_dir():
+                output = self.run_on_directory(img1, img2)
+            else:
+                loader = get_loader(files1=[img1],
+                                    files2=[img2],
+                                    transform=ToTensor(),
+                                    num_workers=0)
+                first_img, second_img = next(iter(loader))
+                output = self.run_on_image(first_img, second_img)
         else:
             output = self.run_on_image(img1, img2)
         return output
