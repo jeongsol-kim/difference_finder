@@ -137,7 +137,7 @@ outputs = worker.run(img1_directory, img2_directory)
 
 ## Principle
 
-So... how does it work?
+So... how does it work? Extremely simple.
 
 ![strategy1](figures/strategy1.png)
 When you set the strategy as 'difference', it simply return the l1 difference (i.e. absolute value of pixel-wise difference), regardless to given metric option.
