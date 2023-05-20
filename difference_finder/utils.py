@@ -95,7 +95,7 @@ def get_high_frequency(img: torch.Tensor,
 
 def get_low_frequency(img: torch.Tensor,
                       factor: Optional[float]=0.9,
-                      out_normalize: Optional[bool]=True,
+                      out_normalize: Optional[bool]=False,
                       mode: Optional[str]='NCHW') -> torch.Tensor:
     
     kpsace = fft2d(img, mode=mode)
