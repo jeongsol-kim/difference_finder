@@ -1,8 +1,17 @@
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union, List
 import torch
+from torchvision.transforms import ToTensor
+from difference_finder.utils import to_np
 from difference_finder.metrics import get_metric
 from difference_finder.strategy import get_strategy
 from difference_finder.processor import get_preprocessor, get_postprocessor
+from difference_finder.data import get_loader
+
+def get_image_files(dir: Path) -> List[Path]:
+    return sorted(dir.glob('*.png')) +\
+           sorted(dir.glob('*.jpg')) +\
+           sorted(dir.glob('*.jpeg'))
 
 class Finder(object):
     def __init__(self,
@@ -16,63 +25,41 @@ class Finder(object):
         self.strategy = get_strategy(name=strategy)
         self.metric = get_metric(name=metric)
 
-    def run(self, img1:torch.Tensor, img2:torch.Tensor):
+    def run_on_image(self, img1: torch.Tensor, img2: torch.Tensor):
         img1 = self.pre_processor(img1)
         img2 = self.pre_processor(img2)
         _map = self.strategy(img1, img2, metric_fn=self.metric)
         output = self.post_processor(_map)
+
+        # output as numpy
+        # remove batch dimension and reduce mean.
+        # shared for every post_process, so excluded.
+        output = to_np(output)[0].mean(axis=-1)
+        return output
+    
+    def run_on_directory(self, img1: Path, img2: Path):
+        files1 = get_image_files(img1)
+        files2 = get_image_files(img2)
+        loader = get_loader(files1=files1,
+                            files2=files2,
+                            transform=ToTensor(),
+                            num_workers=0
+                            )
+        outputs = []
+        for (first_img, second_img) in loader:
+            output = self.run_on_image(first_img, second_img)
+            outputs.append(output)
+        return outputs
+    
+    def run(self,
+            img1: Union[Path, torch.Tensor],
+            img2: Union[Path, torch.Tensor]):
+        
+        if img1.is_dir and img2.is_dir:
+            output = self.run_on_directory(img1, img2)
+        else:
+            output = self.run_on_image(img1, img2)
         return output
 
     def save_fn(self):
         pass
-
-        
-        
-        
-# class Finder(object):
-#     def __init__(self,
-#                  file1: Union[List[Path], Path],
-#                  file2: Union[List[Path], Path],
-#                  num_workers: Optional[int]=0,
-#                  preprocess_fn: Optional[Callable]=None,
-#                  postprocess_fn: Optional[Callable]=None):
-
-#         if file1.is_dir() and file2.is_dir():
-#             # if given files is a directory, retrieve all images (png, jpg, jpeg)
-#             glob_fn = lambda x: list(x.glob('*.png')) \
-#                                 + list(x.glob('*.jpg')) \
-#                                 + list(x.glob('*.jpeg'))
-#             files1 = sorted(glob_fn(file1))
-#             files2 = sorted(glob_fn(file2))
-#         else:
-#             # else, assume given files is a list of paths
-#             files1 = file1
-#             files2 = file2
-    
-#         assert len(files1) == len(files2) 
-#         self.loader = get_loader(files1,
-#                                  files2,
-#                                  transform=ToTensor(),
-#                                  num_workers=num_workers)
-        
-#         if preprocess_fn is not None:
-#             self.preprocess = preprocess_fn
-#         else:
-#             self.preprocess = lambda x: x
-        
-#         if postprocess_fn is not None:
-#             self.postprocess = postprocess_fn
-#         else:
-#             self.postprocess = lambda x: x
-
-#     def find(self):
-#         strategy = get_strategy('threshold')
-#         metric = get_metric('ssim')
-     
-#     def run(self):
-#         for (img_1, img_2) in self.loader:
-#             img_1 = self.preprocess(img_1)
-#             img_2 = self.preprocess(img_2)
-#             print(img_1.shape, img_2.shape)
-
-            
