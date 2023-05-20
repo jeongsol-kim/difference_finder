@@ -7,8 +7,6 @@ With the extensive exploration of machine learning techniques, the quality of re
 
 <br />
 
----
-<br />
 
 ## What you can do
 Given two images, this repo provides the difference map. See the below examples.
