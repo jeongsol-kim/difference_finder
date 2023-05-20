@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="difference_finder",
-    version="0.0.1",
+    version="0.0.2",
     license='MIT',
     author="Jeongsol Kim",
     author_email="wjdthf3927@gmail.com",
