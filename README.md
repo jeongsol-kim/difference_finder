@@ -2,7 +2,7 @@
 
 ![structure](figures/structure.png)
 
-* This is my side-work. I'll improve the figure better for my next free-time 😅
+* This is my side-work. I'll improve the figure during my next free time 😅
 
 This repository is for finding difference between two images automatically using pytorch.
 
