@@ -26,7 +26,8 @@ def fft2d(img: torch.Tensor,
     if mode == 'NCHW':
         return fftshift(fft2(img))
     elif mode == 'NHWC':
-        raise NotImplementedError
+        img = img.permute(0,3,1,2)
+        return fftshift(fft2(img))
     else:
         raise NameError    
     
@@ -39,7 +40,8 @@ def ifft2d(img: torch.Tensor,
     if mode == 'NCHW':
         return ifft2(ifftshift(img))
     elif mode == 'NHWC':
-        raise NotImplementedError
+        img = ifft2(ifftshift(img))
+        return img.permute(0,2,3,1)
     else:
         raise NameError    
 
@@ -80,23 +82,25 @@ def lp_filter(img: torch.Tensor,
     return img * mask 
 
 def get_high_frequency(img: torch.Tensor,
-                       factor: Optional[float]=0.2,
-                       out_normalize: Optional[bool]=True) -> torch.Tensor:
+                       factor: Optional[float]=0.1,
+                       out_normalize: Optional[bool]=False,
+                       mode: Optional[str]='NCHW') -> torch.Tensor:
     
-    kspace = fft2d(img)
+    kspace = fft2d(img, mode=mode)
     h_freq = hp_filter(kspace, factor)
-    recon = ifft2d(h_freq).real
+    recon = ifft2d(h_freq, mode=mode).real
     if out_normalize:
         recon = normalize(recon)
     return recon
 
 def get_low_frequency(img: torch.Tensor,
-                      factor: Optional[float]=0.2,
-                      out_normalize: Optional[bool]=True) -> torch.Tensor:
+                      factor: Optional[float]=0.9,
+                      out_normalize: Optional[bool]=True,
+                      mode: Optional[str]='NCHW') -> torch.Tensor:
     
-    kpsace = fft2d(img)
+    kpsace = fft2d(img, mode=mode)
     l_freq = lp_filter(kpsace, factor)
-    recon = ifft2d(l_freq).real
+    recon = ifft2d(l_freq, mode=mode).real
     if out_normalize:
         recon = normalize(recon)
     return recon
