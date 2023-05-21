@@ -25,9 +25,37 @@ class Finder(object):
         self.strategy = get_strategy(name=strategy)
         self.metric = get_metric(name=metric)
 
+    def _shape_check(self, img: torch.Tensor):
+        # ndim == 2 -> (HW)
+        # ndim == 3 -> (CHW) or (HWC)
+        # ndim == 4 -> (NHWC) or (NCHW)
+        # goal -> convert to (NCHW)
+        if img.ndim == 2:
+            print('Given dimension HxW, convert to 1x1xHxW.')
+            img = img.unsqueeze(0).unsqueeze(0)
+        elif img.ndim == 3:
+            d1, d2, d3 = img.shape
+            if d1 < d2 and d1 < d3:
+                print('Given dimension CxHxW, convert to 1xCxHxW.')
+                img = img.unsqueeze(0)
+            elif d1 > d3 and d2 > d3:
+                print('Given dimension HxWxC, convert to 1xCxHxW.')
+                img = img.permute(2, 0, 1).unsqueeze(0)
+            else:
+                print('Warning. Given dimension is neither CHW nor HWC. Handle it as CxHxW.')
+                img = img.unsqueeze(0)
+        elif img.ndim == 4:
+            n, d1, d2, d3 = img.shape
+            if d1 > d3 and d2 > d3:
+                print('Given dimension NxHxWxC, convert to NxCxHxW.')
+                img = img.permute(0, 3, 1, 2)
+        else:
+            raise NotImplementedError(f'Unexpected input shape - {img.ndim}D')
+        return img
+        
     def run_on_image(self, img1: torch.Tensor, img2: torch.Tensor):
-        img1 = self.pre_processor(img1)
-        img2 = self.pre_processor(img2)
+        img1 = self.pre_processor(self._shape_check(img1))
+        img2 = self.pre_processor(self._shape_check(img2))
         _map = self.strategy(img1, img2, metric_fn=self.metric)
         output = self.post_processor(_map)
 
