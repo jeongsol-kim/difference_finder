@@ -91,13 +91,6 @@ Strategy: Difference | Preprocess: HP filter / Strategy: Gradient /  Metric: SSI
 
 ## How to use
 
-### pre-requisite
-- pytorch > 0.7.0
-- numpy
-- pillow
-- pytorch_msssim
-- lpips
-
 ### Install
 ```
 pip install difference-finder
