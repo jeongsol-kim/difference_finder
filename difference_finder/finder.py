@@ -7,6 +7,7 @@ from difference_finder.metrics import get_metric
 from difference_finder.strategy import get_strategy
 from difference_finder.processor import get_preprocessor, get_postprocessor
 from difference_finder.data import get_loader
+from difference_finder.logger import Logger
 
 def get_image_files(dir: Path) -> List[Path]:
     return sorted(dir.glob('*.png')) +\
@@ -19,11 +20,16 @@ class Finder(object):
                  post_processor: Optional[object]='identity',
                  strategy: Optional[str]='gradient',
                  metric: Optional[str]='mse',
+                 verbose: Optional[bool]=False,
                  ):
         self.pre_processor = get_preprocessor(name=pre_processor)
         self.post_processor = get_postprocessor(name=post_processor)
         self.strategy = get_strategy(name=strategy)
         self.metric = get_metric(name=metric)
+        
+        self.logger = Logger().initLogger()
+        if not verbose:
+            self.logger.setLevel('CRITICAL')
 
     def _shape_check(self, img: torch.Tensor):
         # ndim == 2 -> (HW)
@@ -31,23 +37,23 @@ class Finder(object):
         # ndim == 4 -> (NHWC) or (NCHW)
         # goal -> convert to (NCHW)
         if img.ndim == 2:
-            print('Given dimension HxW, convert to 1x1xHxW.')
+            self.logger.info('Given dimension HxW, convert to 1x1xHxW.')
             img = img.unsqueeze(0).unsqueeze(0)
         elif img.ndim == 3:
             d1, d2, d3 = img.shape
             if d1 < d2 and d1 < d3:
-                print('Given dimension CxHxW, convert to 1xCxHxW.')
+                self.logger.info('Given dimension CxHxW, convert to 1xCxHxW.')
                 img = img.unsqueeze(0)
             elif d1 > d3 and d2 > d3:
-                print('Given dimension HxWxC, convert to 1xCxHxW.')
+                self.logger.info('Given dimension HxWxC, convert to 1xCxHxW.')
                 img = img.permute(2, 0, 1).unsqueeze(0)
             else:
-                print('Warning. Given dimension is neither CHW nor HWC. Handle it as CxHxW.')
+                self.logger.warning('Given dimension is neither CHW nor HWC. Handle it as CxHxW.')
                 img = img.unsqueeze(0)
         elif img.ndim == 4:
             n, d1, d2, d3 = img.shape
             if d1 > d3 and d2 > d3:
-                print('Given dimension NxHxWxC, convert to NxCxHxW.')
+                self.logger.info('Given dimension NxHxWxC, convert to NxCxHxW.')
                 img = img.permute(0, 3, 1, 2)
         else:
             raise NotImplementedError(f'Unexpected input shape - {img.ndim}D')
@@ -67,14 +73,17 @@ class Finder(object):
     
     def run_on_directory(self, img1: Path, img2: Path):
         files1 = get_image_files(img1)
+        self.logger.info(f'Images detected from the first directory: {len(files1)}')
         files2 = get_image_files(img2)
+        self.logger.info(f'Images detected from the second directory: {len(files2)}')
         loader = get_loader(files1=files1,
                             files2=files2,
                             transform=ToTensor(),
                             num_workers=0
                             )
         outputs = []
-        for (first_img, second_img) in loader:
+        for i, (first_img, second_img) in enumerate(loader):
+            self.logger.info(f'Run on {i+1}th image.')
             output = self.run_on_image(first_img, second_img)
             outputs.append(output)
         return outputs
@@ -85,8 +94,10 @@ class Finder(object):
 
         if isinstance(img1, Path) and isinstance(img2, Path):
             if img1.is_dir() and img2.is_dir():
+                self.logger.info(f'Get two image directories.')
                 output = self.run_on_directory(img1, img2)
             else:
+                self.logger.info(f'Get two image paths.')
                 loader = get_loader(files1=[img1],
                                     files2=[img2],
                                     transform=ToTensor(),
@@ -94,6 +105,7 @@ class Finder(object):
                 first_img, second_img = next(iter(loader))
                 output = self.run_on_image(first_img, second_img)
         else:
+            self.logger.info(f'Get two image tensors.')
             output = self.run_on_image(img1, img2)
         return output
 
