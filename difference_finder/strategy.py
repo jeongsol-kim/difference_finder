@@ -20,19 +20,23 @@ def get_strategy(name: str):
 @register_strategy(name='difference')
 def difference_strategy(img1: torch.Tensor,
                         img2: torch.Tensor,
-                        metric_fn: Optional[Callable]=None):
+                        metric_fn: Optional[Callable]=None,
+                        return_metric: Optional[bool]=False):
     metric_fn = lambda x, y: torch.abs(x-y)
     difference = metric_fn(img1, img2)
     assert difference.shape == img1.shape, \
         print('It is expected that metric_fn returns the same dimentional tensor as the input.')
     
-    return difference
+    if return_metric:
+        return difference, difference.mean().detach().cpu().numpy()
+    return difference, None
 
 @register_strategy(name='gradient')
 def gradient_strategy(img1: torch.Tensor,
                       img2: torch.Tensor,
                       metric_fn: Callable,
-                      reference_idx: Optional[int]=0):
+                      reference_idx: Optional[int]=0,
+                      return_metric: Optional[bool]=False):
 
     assert reference_idx in [0, 1], \
         print('reference_idx should be 0 or 1 (i.e. img1 or img2).')
@@ -43,4 +47,6 @@ def gradient_strategy(img1: torch.Tensor,
     target.requires_grad = True
     scalar = metric_fn(compare, target).mean()
     diff_grad = torch.autograd.grad(scalar, target)[0]
-    return diff_grad
+    if return_metric:
+        return diff_grad, scalar.detach().cpu().numpy()
+    return diff_grad, None

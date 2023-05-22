@@ -59,19 +59,22 @@ class Finder(object):
             raise NotImplementedError(f'Unexpected input shape - {img.ndim}D')
         return img
         
-    def run_on_image(self, img1: torch.Tensor, img2: torch.Tensor):
+    def run_on_image(self, img1: torch.Tensor, img2: torch.Tensor, return_metric: Optional[bool]=False):
         img1 = self.pre_processor(self._shape_check(img1))
         img2 = self.pre_processor(self._shape_check(img2))
-        _map = self.strategy(img1, img2, metric_fn=self.metric)
+        _map, _metric = self.strategy(img1, img2, metric_fn=self.metric, return_metric=return_metric)
         output = self.post_processor(_map)
 
         # output as numpy
         # remove batch dimension and reduce mean.
         # shared for every post_process, so excluded.
         output = to_np(output)[0].mean(axis=-1)
+
+        if return_metric:
+            return (output, _metric)
         return output
     
-    def run_on_directory(self, img1: Path, img2: Path):
+    def run_on_directory(self, img1: Path, img2: Path, return_metric: Optional[bool]=False):
         files1 = get_image_files(img1)
         self.logger.info(f'Images detected from the first directory: {len(files1)}')
         files2 = get_image_files(img2)
@@ -82,20 +85,29 @@ class Finder(object):
                             num_workers=0
                             )
         outputs = []
+        metrics = []
         for i, (first_img, second_img) in enumerate(loader):
             self.logger.info(f'Run on {i+1}th image.')
-            output = self.run_on_image(first_img, second_img)
-            outputs.append(output)
+            output = self.run_on_image(first_img, second_img, return_metric)
+            if return_metric:
+                outputs.append(output[0])
+                metrics.append(output[1])
+            else:
+                outputs.append(output)
+        
+        if return_metric:
+            return (outputs, metrics)
         return outputs
     
     def run(self,
             img1: Union[Path, torch.Tensor],
-            img2: Union[Path, torch.Tensor]):
+            img2: Union[Path, torch.Tensor],
+            return_metric: Optional[bool]=False):
 
         if isinstance(img1, Path) and isinstance(img2, Path):
             if img1.is_dir() and img2.is_dir():
                 self.logger.info(f'Get two image directories.')
-                output = self.run_on_directory(img1, img2)
+                output = self.run_on_directory(img1, img2, return_metric)
             else:
                 self.logger.info(f'Get two image paths.')
                 loader = get_loader(files1=[img1],
@@ -103,7 +115,7 @@ class Finder(object):
                                     transform=ToTensor(),
                                     num_workers=0)
                 first_img, second_img = next(iter(loader))
-                output = self.run_on_image(first_img, second_img)
+                output = self.run_on_image(first_img, second_img, return_metric)
         else:
             self.logger.info(f'Get two image tensors.')
             output = self.run_on_image(img1, img2)
