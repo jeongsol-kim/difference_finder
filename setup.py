@@ -11,6 +11,15 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url="https://github.com/jeongsol-kim/difference_finder",
     packages=setuptools.find_packages(),
+    install_requires=[
+        'numpy',
+        'Pillow',
+        'rich',
+        'torch',
+        'torchvision',
+        'lpips',
+        'pytorch-msssim',
+    ],
     classifiers=[
         # 패키지에 대한 태그
         "Programming Language :: Python :: 3",
