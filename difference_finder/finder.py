@@ -20,12 +20,14 @@ class Finder(object):
                  post_processor: Optional[object]='identity',
                  strategy: Optional[str]='gradient',
                  metric: Optional[str]='mse',
+                 device: Optional[str]='cpu',
                  verbose: Optional[bool]=False,
                  ):
         self.pre_processor = get_preprocessor(name=pre_processor)
         self.post_processor = get_postprocessor(name=post_processor)
         self.strategy = get_strategy(name=strategy)
         self.metric = get_metric(name=metric)
+        self.device = device
         
         self.logger = Logger().initLogger()
         if not verbose:
@@ -60,8 +62,8 @@ class Finder(object):
         return img
         
     def run_on_image(self, img1: torch.Tensor, img2: torch.Tensor, return_metric: Optional[bool]=False):
-        img1 = self.pre_processor(self._shape_check(img1))
-        img2 = self.pre_processor(self._shape_check(img2))
+        img1 = self.pre_processor(self._shape_check(img1)).to(self.device)
+        img2 = self.pre_processor(self._shape_check(img2)).to(self.device)
         _map, _metric = self.strategy(img1, img2, metric_fn=self.metric, return_metric=return_metric)
         output = self.post_processor(_map)
 
