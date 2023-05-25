@@ -120,7 +120,7 @@ class Finder(object):
                 output = self.run_on_image(first_img, second_img, return_metric)
         else:
             self.logger.info(f'Get two image tensors.')
-            output = self.run_on_image(img1, img2)
+            output = self.run_on_image(img1, img2, return_metric)
         return output
 
     def save_fn(self):
